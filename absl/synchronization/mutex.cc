@@ -1,3 +1,17 @@
+// Copyright 2017 The Abseil Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "absl/synchronization/mutex.h"
 
 #ifdef _WIN32
@@ -249,7 +263,6 @@ static const struct {
   { 0,                           "Signal on " },
   { 0,                           "SignalAll on " },
 };
-
 static absl::base_internal::SpinLock synch_event_mu(
     absl::base_internal::kLinkerInitialized);
 // protects synch_event
@@ -675,7 +688,7 @@ static unsigned TsanFlags(Mutex::MuHow how) {
 #endif
 
 Mutex::Mutex() : mu_(0) {
-  ABSL_TSAN_MUTEX_CREATE(this, 0);
+  ABSL_TSAN_MUTEX_CREATE(this, __tsan_mutex_not_static);
 }
 
 static bool DebugOnlyIsExiting() {
@@ -690,7 +703,7 @@ Mutex::~Mutex() {
   if (kDebugMode) {
     this->ForgetDeadlockInfo();
   }
-  ABSL_TSAN_MUTEX_DESTROY(this, 0);
+  ABSL_TSAN_MUTEX_DESTROY(this, __tsan_mutex_not_static);
 }
 
 void Mutex::EnableDebugLog(const char *name) {
