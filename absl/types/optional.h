@@ -492,11 +492,11 @@ class optional : private optional_internal::optional_data<T>,
 
   // Constructors
 
-  // Constructs a default-constructed `optional` holding the empty value, NOT a
-  // default constructed `T`.
+  // Constructs an `optional` holding an empty value, NOT a default constructed
+  // `T`.
   constexpr optional() noexcept {}
 
-  // Construct an` optional` initialized with `nullopt` to hold an empty value.
+  // Constructs an `optional` initialized with `nullopt` to hold an empty value.
   constexpr optional(nullopt_t) noexcept {}  // NOLINT(runtime/explicit)
 
   // Copy constructor, standard semantics
@@ -515,7 +515,7 @@ class optional : private optional_internal::optional_data<T>,
   constexpr explicit optional(in_place_t, Args&&... args)
       : data_base(in_place_t(), absl::forward<Args>(args)...) {}
 
-  // Constructs a non-empty `optional' direct-initialized value of type `T` from
+  // Constructs a non-empty `optional` direct-initialized value of type `T` from
   // the arguments of an initializer_list and `std::forward<Args>(args)...`.
   // (The `in_place_t` is a tag used to indicate that the contained object
   // should be constructed in-place.)
@@ -845,16 +845,24 @@ class optional : private optional_internal::optional_data<T>,
 
   // optional::value_or()
   //
-  // Returns either the value of `T` or a passed default `val` if the `optional`
+  // Returns either the value of `T` or a passed default `v` if the `optional`
   // is empty.
   template <typename U>
   constexpr T value_or(U&& v) const& {
+    static_assert(std::is_copy_constructible<value_type>::value,
+                  "optional<T>::value_or: T must by copy constructible");
+    static_assert(std::is_convertible<U&&, value_type>::value,
+                  "optional<T>::value_or: U must be convertible to T");
     return static_cast<bool>(*this)
                ? **this
                : static_cast<T>(absl::forward<U>(v));
   }
   template <typename U>
   T value_or(U&& v) && {  // NOLINT(build/c++11)
+    static_assert(std::is_move_constructible<value_type>::value,
+                  "optional<T>::value_or: T must by copy constructible");
+    static_assert(std::is_convertible<U&&, value_type>::value,
+                  "optional<T>::value_or: U must be convertible to T");
     return static_cast<bool>(*this) ? std::move(**this)
                                     : static_cast<T>(std::forward<U>(v));
   }

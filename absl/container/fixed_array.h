@@ -47,6 +47,7 @@
 #include "absl/base/macros.h"
 #include "absl/base/optimization.h"
 #include "absl/base/port.h"
+#include "absl/memory/memory.h"
 
 namespace absl {
 
@@ -107,6 +108,15 @@ class FixedArray {
           ? kInlineBytesDefault / sizeof(value_type)
           : inlined;
 
+  FixedArray(const FixedArray& other) : rep_(other.begin(), other.end()) {}
+  FixedArray(FixedArray&& other) noexcept(
+  // clang-format off
+      absl::allocator_is_nothrow<std::allocator<value_type>>::value &&
+  // clang-format on
+          std::is_nothrow_move_constructible<value_type>::value)
+      : rep_(std::make_move_iterator(other.begin()),
+             std::make_move_iterator(other.end())) {}
+
   // Creates an array object that can store `n` elements.
   // Note that trivially constructible elements will be uninitialized.
   explicit FixedArray(size_type n) : rep_(n) {}
@@ -126,11 +136,9 @@ class FixedArray {
 
   ~FixedArray() {}
 
-  // Copy and move construction and assignment are deleted because (1) you can't
-  // copy or move an array, (2) assignment breaks the invariant that the size of
-  // a `FixedArray` never changes, and (3) there's no clear answer as to what
-  // should happen to a moved-from `FixedArray`.
-  FixedArray(const FixedArray&) = delete;
+  // Assignments are deleted because they break the invariant that the size of a
+  // `FixedArray` never changes.
+  void operator=(FixedArray&&) = delete;
   void operator=(const FixedArray&) = delete;
 
   // FixedArray::size()
@@ -167,6 +175,7 @@ class FixedArray {
   // fixed array. This pointer can be used to access and modify the contained
   // elements.
   pointer data() { return AsValue(rep_.begin()); }
+
   // FixedArray::operator[]
   //
   // Returns a reference the ith element of the fixed array.
@@ -449,7 +458,7 @@ class FixedArray {
       // Loop optimizes to nothing for trivially destructible T.
       for (Holder* p = end(); p != begin();) (--p)->~Holder();
       if (IsAllocated(size())) {
-        ::operator delete[](begin());
+        std::allocator<Holder>().deallocate(p_, n_);
       } else {
         this->AnnotateDestruct(size());
       }
@@ -461,15 +470,11 @@ class FixedArray {
    private:
     Holder* MakeHolder(size_type n) {
       if (IsAllocated(n)) {
-        return Allocate(n);
+        return std::allocator<Holder>().allocate(n);
       } else {
         this->AnnotateConstruct(n);
         return this->data();
       }
-    }
-
-    Holder* Allocate(size_type n) {
-      return static_cast<Holder*>(::operator new[](n * sizeof(Holder)));
     }
 
     bool IsAllocated(size_type n) const { return n > inline_elements; }

@@ -304,7 +304,7 @@ class any {
   // object of type `VT` with the arguments `std::forward<Args>(args)...`, and
   // returning a reference to the new contained value.
   //
-  // Note: If an exception is thrown during the call to `VT`’s constructor,
+  // Note: If an exception is thrown during the call to `VT`'s constructor,
   // `*this` does not contain a value, and any previously contained value has
   // been destroyed.
   template <
@@ -325,7 +325,7 @@ class any {
   // `initilizer_list, std::forward<Args>(args)...`, and returning a reference
   // to the new contained value.
   //
-  // Note: If an exception is thrown during the call to `VT`’s constructor,
+  // Note: If an exception is thrown during the call to `VT`'s constructor,
   // `*this` does not contain a value, and any previously contained value has
   // been destroyed. The function shall not participate in overload resolution
   // unless `is_copy_constructible_v<VT>` is `true` and
@@ -373,6 +373,7 @@ class any {
     return typeid(void);
   }
 #endif  // ABSL_ANY_DETAIL_HAS_RTTI
+
  private:
   // Tagged type-erased abstraction for holding a cloneable object.
   class ObjInterface {

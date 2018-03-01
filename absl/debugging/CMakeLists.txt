@@ -17,13 +17,16 @@
 list(APPEND DEBUGGING_PUBLIC_HEADERS
   "leak_check.h"
   "stacktrace.h"
+  "symbolize.h"
 )
 
 
 list(APPEND DEBUGGING_INTERNAL_HEADERS
   "internal/address_is_readable.h"
+  "internal/demangle.h"
   "internal/elf_mem_image.h"
   "internal/stacktrace_config.h"
+  "internal/symbolize.h"
   "internal/vdso_support.h"
 )
 
@@ -37,6 +40,15 @@ list(APPEND STACKTRACE_SRC
   ${DEBUGGING_INTERNAL_HEADERS}
 )
 
+list(APPEND SYMBOLIZE_SRC
+  "symbolize.cc"
+  "symbolize_elf.inc"
+  "symbolize_unimplemented.inc"
+  "internal/demangle.cc"
+  ${DEBUGGING_PUBLIC_HEADERS}
+  ${DEBUGGING_INTERNAL_HEADERS}
+)
+
 absl_library(
   TARGET
     absl_stacktrace
@@ -46,6 +58,14 @@ absl_library(
     stacktrace
 )
 
+absl_library(
+  TARGET
+    absl_symbolize
+  SOURCES
+    ${SYMBOLIZE_SRC}
+  EXPORT_NAME
+    symbolize
+)
 
 list(APPEND LEAK_CHECK_SRC
   "leak_check.cc"
@@ -79,6 +99,51 @@ absl_header_library(
 ## TESTS
 #
 
+list(APPEND DEBUGGING_INTERNAL_TEST_HEADERS
+  "internal/stack_consumption.h"
+)
+
+list(APPEND STACK_CONSUMPTION_SRC
+  "internal/stack_consumption.cc"
+  ${DEBUGGING_INTERNAL_TEST_HEADERS}
+)
+
+absl_library(
+  TARGET
+    absl_stack_consumption
+  SOURCES
+    ${STACK_CONSUMPTION_SRC}
+)
+
+absl_test(
+  TARGET
+    absl_stack_consumption_test
+  SOURCES
+    ${STACK_CONSUMPTION_SRC}
+)
+
+list(APPEND DEMANGLE_TEST_SRC "demangle_test.cc")
+
+absl_test(
+  TARGET
+    demangle_test
+  SOURCES
+    ${DEMANGLE_TEST_SRC}
+  PUBLIC_LIBRARIES
+    absl_symbolize absl_stack_consumption
+)
+
+list(APPEND SYMBOLIZE_TEST_SRC "symbolize_test.cc")
+
+absl_test(
+  TARGET
+    symbolize_test
+  SOURCES
+    ${SYMBOLIZE_TEST_SRC}
+  PUBLIC_LIBRARIES
+    absl_symbolize absl_stack_consumption
+)
+
 # test leak_check_test
 list(APPEND LEAK_CHECK_TEST_SRC "leak_check_test.cc")
 
@@ -90,4 +155,3 @@ absl_test(
   PUBLIC_LIBRARIES
     absl_leak_check
 )
-

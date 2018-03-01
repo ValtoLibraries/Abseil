@@ -1,4 +1,4 @@
-// Copyright 2017 The Abseil Authors.
+// Copyright 2018 The Abseil Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// -----------------------------------------------------------------------------
-// File: ascii.h
-// -----------------------------------------------------------------------------
-//
-#include "absl/utility/utility.h"
+#include <cstdint>
+
+#include "absl/base/internal/raw_logging.h"
 
 namespace absl {
 
-#ifndef ABSL_HAVE_STD_OPTIONAL
-const in_place_t in_place{};
-#endif
+namespace debugging_internal {
+
+int InstallSymbolDecorator(SymbolDecorator, void*) { return -1; }
+bool RemoveSymbolDecorator(int) { return false; }
+bool RemoveAllSymbolDecorators(void) { return false; }
+bool RegisterFileMappingHint(const void *, const void *, uint64_t, const char *) {
+  return false;
+}
+
+}  // namespace debugging_internal
+
+void InitializeSymbolizer(const char*) {}
+bool Symbolize(const void *, char *, int) { return false; }
 
 }  // namespace absl

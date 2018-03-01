@@ -1,4 +1,4 @@
-// Copyright 2017 The Abseil Authors.
+// Copyright 2018 The Abseil Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,4 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "absl/base/internal/log_severity.h"
+#include "absl/debugging/symbolize.h"
+
+#ifdef ABSL_INTERNAL_HAVE_ELF_SYMBOLIZE
+#include "absl/debugging/symbolize_elf.inc"
+#else
+#include "absl/debugging/symbolize_unimplemented.inc"
+#endif

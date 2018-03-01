@@ -32,7 +32,7 @@ list(APPEND TIME_SRC
   ${TIME_PUBLIC_HEADERS}
   ${TIME_INTERNAL_HEADERS}
 )
-set(TIME_PUBLIC_LIBRARIES absl::base absl::stacktrace absl::int128 cctz)
+set(TIME_PUBLIC_LIBRARIES absl::base absl::stacktrace absl::int128 ${ABSL_CCTZ_TARGET})
 
 absl_library(
   TARGET
@@ -74,5 +74,4 @@ absl_test(
   PUBLIC_LIBRARIES
     ${TIME_TEST_PUBLIC_LIBRARIES}
 )
-
 

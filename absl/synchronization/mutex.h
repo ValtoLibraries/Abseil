@@ -64,6 +64,7 @@
 #include "absl/base/internal/identity.h"
 #include "absl/base/internal/low_level_alloc.h"
 #include "absl/base/internal/thread_identity.h"
+#include "absl/base/internal/tsan_mutex_interface.h"
 #include "absl/base/port.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/internal/kernel_timeout.h"
@@ -232,8 +233,8 @@ class LOCKABLE Mutex {
   //
   // Aliases for `Mutex::Lock()`, `Mutex::Unlock()`, and `Mutex::TryLock()`.
   //
-  // Use the `Writer*()` versions of these method names when using complementary
-  // `Reader*()` methods to distingish simple exclusive `Mutex` usage (`Lock()`,
+  // These methods may be used (along with the complementary `Reader*()`
+  // methods) to distingish simple exclusive `Mutex` usage (`Lock()`,
   // etc.) from reader/writer lock usage.
   void WriterLock() EXCLUSIVE_LOCK_FUNCTION() { this->Lock(); }
 
@@ -713,7 +714,7 @@ class Condition {
 // The implementation may deliver signals to any condition variable at
 // any time, even when no call to `Signal()` or `SignalAll()` is made; as a
 // result, upon being awoken, you must check the logical condition you have
-// been waiting upon. The implementation wakes waiters in the FIFO order.
+// been waiting upon.
 //
 // Examples:
 //
@@ -742,29 +743,19 @@ class CondVar {
 
   // CondVar::Wait()
   //
-  // Atomically releases a `Mutex` and blocks on this condition variable. After
-  // blocking, the thread will unblock, reacquire the `Mutex`, and return if
-  // either:
-  //  - this condition variable is signalled with `SignalAll()`, or
-  //  - this condition variable is signalled in any manner and this thread
-  //    was the most recently blocked thread that has not yet woken.
+  // Atomically releases a `Mutex` and blocks on this condition variable.
+  // Waits until awakened by a call to `Signal()` or `SignalAll()` (or a
+  // spurious wakeup), then reacquires the `Mutex` and returns.
+  //
   // Requires and ensures that the current thread holds the `Mutex`.
   void Wait(Mutex *mu);
 
   // CondVar::WaitWithTimeout()
   //
-  // Atomically releases a `Mutex`, blocks on this condition variable, and
-  // attempts to reacquire the mutex upon being signalled, or upon reaching the
-  // timeout.
-  //
-  // After blocking, the thread will unblock, reacquire the `Mutex`, and return
-  // for any of the following:
-  //  - this condition variable is signalled with `SignalAll()`
-  //  - the timeout has expired
-  //  - this condition variable is signalled in any manner and this thread
-  //    was the most recently blocked thread that has not yet woken.
-  //
-  // Negative timeouts are equivalent to a zero timeout.
+  // Atomically releases a `Mutex` and blocks on this condition variable.
+  // Waits until awakened by a call to `Signal()` or `SignalAll()` (or a
+  // spurious wakeup), or until the timeout has expired, then reacquires
+  // the `Mutex` and returns.
   //
   // Returns true if the timeout has expired without this `CondVar`
   // being signalled in any manner. If both the timeout has expired
@@ -776,15 +767,10 @@ class CondVar {
 
   // CondVar::WaitWithDeadline()
   //
-  // Atomically releases a `Mutex`, blocks on this condition variable, and
-  // attempts to reacquire the mutex within the provided deadline.
-  //
-  // After blocking, the thread will unblock, reacquire the `Mutex`, and return
-  // for any of the following:
-  //  - this condition variable is signalled with `SignalAll()`
-  //  - the deadline has passed
-  //  - this condition variable is signalled in any manner and this thread
-  //    was the most recently blocked thread that has not yet woken.
+  // Atomically releases a `Mutex` and blocks on this condition variable.
+  // Waits until awakened by a call to `Signal()` or `SignalAll()` (or a
+  // spurious wakeup), or until the deadline has passed, then reacquires
+  // the `Mutex` and returns.
   //
   // Deadlines in the past are equivalent to an immediate deadline.
   //
@@ -875,6 +861,9 @@ class SCOPED_LOCKABLE ReleasableMutexLock {
 
 #ifdef ABSL_INTERNAL_USE_NONPROD_MUTEX
 #else
+inline Mutex::Mutex() : mu_(0) {
+  ABSL_TSAN_MUTEX_CREATE(this, __tsan_mutex_not_static);
+}
 
 inline CondVar::CondVar() : cv_(0) {}
 #endif

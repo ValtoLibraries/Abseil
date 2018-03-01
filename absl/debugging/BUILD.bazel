@@ -17,6 +17,7 @@
 load(
     "//absl:copts.bzl",
     "ABSL_DEFAULT_COPTS",
+    "ABSL_TEST_COPTS",
 )
 
 package(
@@ -36,6 +37,42 @@ cc_library(
         ":debugging_internal",
         "//absl/base",
         "//absl/base:core_headers",
+    ],
+)
+
+cc_library(
+    name = "symbolize",
+    srcs = [
+        "symbolize.cc",
+        "symbolize_elf.inc",
+        "symbolize_unimplemented.inc",
+    ],
+    hdrs = [
+        "internal/symbolize.h",
+        "symbolize.h",
+    ],
+    copts = ABSL_DEFAULT_COPTS,
+    deps = [
+        ":debugging_internal",
+        ":demangle_internal",
+        "//absl/base",
+        "//absl/base:core_headers",
+        "//absl/base:malloc_internal",
+    ],
+)
+
+cc_test(
+    name = "symbolize_test",
+    srcs = ["symbolize_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    deps = [
+        ":stack_consumption",
+        ":symbolize",
+        "//absl/base",
+        "//absl/base:core_headers",
+        "//absl/base:malloc_extension",
+        "//absl/memory",
+        "@com_google_googletest//:gtest",
     ],
 )
 
@@ -63,7 +100,31 @@ cc_library(
     deps = [
         "//absl/base",
         "//absl/base:dynamic_annotations",
+    ],
+)
+
+cc_library(
+    name = "demangle_internal",
+    srcs = ["internal/demangle.cc"],
+    hdrs = ["internal/demangle.h"],
+    copts = ABSL_DEFAULT_COPTS,
+    deps = [
+        "//absl/base",
         "//absl/base:core_headers",
+    ],
+)
+
+cc_test(
+    name = "demangle_test",
+    srcs = ["internal/demangle_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    deps = [
+        ":demangle_internal",
+        ":stack_consumption",
+        "//absl/base",
+        "//absl/base:core_headers",
+        "//absl/memory",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -164,6 +225,31 @@ cc_test(
         ":leak_check_api_enabled_for_testing",
         ":leak_check_disable",
         "//absl/base",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "stack_consumption",
+    testonly = 1,
+    srcs = ["internal/stack_consumption.cc"],
+    hdrs = ["internal/stack_consumption.h"],
+    copts = ABSL_DEFAULT_COPTS,
+    deps = [
+        "//absl/base",
+        "//absl/base:core_headers",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cc_test(
+    name = "stack_consumption_test",
+    srcs = ["internal/stack_consumption_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    deps = [
+        ":stack_consumption",
+        "//absl/base",
+        "//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ],
 )

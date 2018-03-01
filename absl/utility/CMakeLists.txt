@@ -19,24 +19,12 @@ list(APPEND UTILITY_PUBLIC_HEADERS
   "utility.h"
 )
 
-
-
-list(APPEND UTILITY_SRC
-  "utility.cc"
-  ${UTILITY_PUBLIC_HEADERS}
-)
-
-absl_library(
+absl_header_library(
   TARGET
     absl_utility
-  SOURCES
-    ${UTILITY_SRC}
-  PUBLIC_LIBRARIES
-    ${UTILITY_PUBLIC_LIBRARIES}
   EXPORT_NAME
     utility
 )
-
 
 
 #
@@ -55,6 +43,3 @@ absl_test(
   PUBLIC_LIBRARIES
     ${UTILITY_TEST_PUBLIC_LIBRARIES}
 )
-
-
-

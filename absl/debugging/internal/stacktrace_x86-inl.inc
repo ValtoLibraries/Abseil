@@ -170,11 +170,11 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
     static const unsigned char *kernel_rt_sigreturn_address = nullptr;
     static const unsigned char *kernel_vsyscall_address = nullptr;
     if (num_push_instructions == -1) {
-      absl::debug_internal::VDSOSupport vdso;
+      absl::debugging_internal::VDSOSupport vdso;
       if (vdso.IsPresent()) {
-        absl::debug_internal::VDSOSupport::SymbolInfo
+        absl::debugging_internal::VDSOSupport::SymbolInfo
             rt_sigreturn_symbol_info;
-        absl::debug_internal::VDSOSupport::SymbolInfo vsyscall_symbol_info;
+        absl::debugging_internal::VDSOSupport::SymbolInfo vsyscall_symbol_info;
         if (!vdso.LookupSymbol("__kernel_rt_sigreturn", "LINUX_2.5", STT_FUNC,
                                &rt_sigreturn_symbol_info) ||
             !vdso.LookupSymbol("__kernel_vsyscall", "LINUX_2.5", STT_FUNC,
@@ -221,7 +221,7 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
           // "double fault" in case we hit the first fault due to e.g. stack
           // corruption.
           void *const reg_esp2 = reg_esp[num_push_instructions - 1];
-          if (absl::debug_internal::AddressIsReadable(reg_esp2)) {
+          if (absl::debugging_internal::AddressIsReadable(reg_esp2)) {
             // Alleged %esp is readable, use it for further unwinding.
             new_fp = reinterpret_cast<void **>(reg_esp2);
           }
@@ -273,7 +273,7 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
     // Note: NextStackFrame<false>() is only called while the program
     //       is already on its last leg, so it's ok to be slow here.
 
-    if (!absl::debug_internal::AddressIsReadable(new_fp)) {
+    if (!absl::debugging_internal::AddressIsReadable(new_fp)) {
       return nullptr;
     }
   }
@@ -325,5 +325,13 @@ static int UnwindImpl(void **result, int *sizes, int max_depth, int skip_count,
   }
   return n;
 }
+
+namespace absl {
+namespace debugging_internal {
+bool StackTraceWorksForTest() {
+  return true;
+}
+}  // namespace debugging_internal
+}  // namespace absl
 
 #endif  // ABSL_DEBUGGING_INTERNAL_STACKTRACE_X86_INL_INC_
