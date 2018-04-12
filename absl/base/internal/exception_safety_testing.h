@@ -37,7 +37,7 @@
 namespace absl {
 struct InternalAbslNamespaceFinder {};
 
-struct AllocInspector;
+struct ConstructorTracker;
 
 // A configuration enum for Throwing*.  Operations whose flags are set will
 // throw, everything else won't.  This isn't meant to be exhaustive, more flags
@@ -125,7 +125,7 @@ class TrackedObject {
     }
   }
 
-  friend struct ::absl::AllocInspector;
+  friend struct ::absl::ConstructorTracker;
 };
 
 template <typename Factory>
@@ -203,12 +203,12 @@ extern exceptions_internal::NoThrowTag no_throw_ctor;
 inline void SetCountdown() { exceptions_internal::countdown = 0; }
 inline void UnsetCountdown() { exceptions_internal::countdown = -1; }
 
-// A test class which is contextually convertible to bool.  The conversion can
-// be instrumented to throw at a controlled time.
+// A test class which is convertible to bool.  The conversion can be
+// instrumented to throw at a controlled time.
 class ThrowingBool {
  public:
   ThrowingBool(bool b) noexcept : b_(b) {}  // NOLINT(runtime/explicit)
-  explicit operator bool() const {
+  operator bool() const {  // NOLINT(runtime/explicit)
     exceptions_internal::MaybeThrow(ABSL_PRETTY_FUNCTION);
     return b_;
   }
@@ -355,6 +355,8 @@ class ThrowingValue : private exceptions_internal::TrackedObject {
   }
 
   // Comparison Operators
+  // NOTE: We use `ThrowingBool` instead of `bool` because most STL
+  // types/containers requires T to be convertible to bool.
   friend ThrowingBool operator==(const ThrowingValue& a,
                                  const ThrowingValue& b) {
     exceptions_internal::MaybeThrow(ABSL_PRETTY_FUNCTION);
@@ -592,6 +594,8 @@ class ThrowingAllocator : private exceptions_internal::TrackedObject {
       const ThrowingAllocator<U, Flags>& other) noexcept
       : TrackedObject(ABSL_PRETTY_FUNCTION), dummy_(other.State()) {}
 
+  // According to C++11 standard [17.6.3.5], Table 28, the move/copy ctors of
+  // allocator shall not exit via an exception, thus they are marked noexcept.
   ThrowingAllocator(const ThrowingAllocator& other) noexcept
       : TrackedObject(ABSL_PRETTY_FUNCTION), dummy_(other.State()) {}
 
@@ -604,6 +608,11 @@ class ThrowingAllocator : private exceptions_internal::TrackedObject {
       : TrackedObject(ABSL_PRETTY_FUNCTION), dummy_(std::move(other.State())) {}
 
   ~ThrowingAllocator() noexcept = default;
+
+  ThrowingAllocator& operator=(const ThrowingAllocator& other) noexcept {
+    dummy_ = other.State();
+    return *this;
+  }
 
   template <typename U>
   ThrowingAllocator& operator=(
@@ -702,11 +711,11 @@ int ThrowingAllocator<T, Throws>::next_id_ = 0;
 // Inspects the constructions and destructions of anything inheriting from
 // TrackedObject.  Place this as a member variable in a test fixture to ensure
 // that every ThrowingValue was constructed and destroyed correctly.  This also
-// allows us to safely "leak" TrackedObjects, as AllocInspector will destroy
+// allows us to safely "leak" TrackedObjects, as ConstructorTracker will destroy
 // everything left over in its destructor.
-struct AllocInspector {
-  AllocInspector() = default;
-  ~AllocInspector() {
+struct ConstructorTracker {
+  ConstructorTracker() = default;
+  ~ConstructorTracker() {
     auto& allocs = exceptions_internal::TrackedObject::GetAllocs();
     for (const auto& kv : allocs) {
       ADD_FAILURE() << "Object at address " << static_cast<void*>(kv.first)
@@ -718,7 +727,7 @@ struct AllocInspector {
 
 // Tests for resource leaks by attempting to construct a T using args repeatedly
 // until successful, using the countdown method.  Side effects can then be
-// tested for resource leaks.  If an AllocInspector is present in the test
+// tested for resource leaks.  If a ConstructorTracker is present in the test
 // fixture, then this will also test that memory resources are not leaked as
 // long as T allocates TrackedObjects.
 template <typename T, typename... Args>

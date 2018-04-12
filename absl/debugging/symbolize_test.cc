@@ -27,7 +27,6 @@
 #include "gtest/gtest.h"
 #include "absl/base/attributes.h"
 #include "absl/base/casts.h"
-#include "absl/base/internal/malloc_extension.h"
 #include "absl/base/internal/per_thread_tls.h"
 #include "absl/base/internal/raw_logging.h"
 #include "absl/base/optimization.h"
@@ -49,6 +48,28 @@ struct Foo {
 // A C++ method that should have a mangled name.
 void ABSL_ATTRIBUTE_NOINLINE Foo::func(int) {
   ABSL_BLOCK_TAIL_CALL_OPTIMIZATION();
+}
+
+// Create functions that will remain in different text sections in the
+// final binary when linker option "-z,keep-text-section-prefix" is used.
+int ABSL_ATTRIBUTE_SECTION_VARIABLE(.text.unlikely) unlikely_func() {
+  return 0;
+}
+
+int ABSL_ATTRIBUTE_SECTION_VARIABLE(.text.hot) hot_func() {
+  return 0;
+}
+
+int ABSL_ATTRIBUTE_SECTION_VARIABLE(.text.startup) startup_func() {
+  return 0;
+}
+
+int ABSL_ATTRIBUTE_SECTION_VARIABLE(.text.exit) exit_func() {
+  return 0;
+}
+
+int ABSL_ATTRIBUTE_SECTION_VARIABLE(.text) regular_func() {
+  return 0;
 }
 
 // Thread-local data may confuse the symbolizer, ensure that it does not.
@@ -136,6 +157,14 @@ TEST(Symbolize, SymbolizeWithDemangling) {
   EXPECT_STREQ("Foo::func()", TrySymbolize((void *)(&Foo::func)));
 }
 
+TEST(Symbolize, SymbolizeSplitTextSections) {
+  EXPECT_STREQ("unlikely_func()", TrySymbolize((void *)(&unlikely_func)));
+  EXPECT_STREQ("hot_func()", TrySymbolize((void *)(&hot_func)));
+  EXPECT_STREQ("startup_func()", TrySymbolize((void *)(&startup_func)));
+  EXPECT_STREQ("exit_func()", TrySymbolize((void *)(&exit_func)));
+  EXPECT_STREQ("regular_func()", TrySymbolize((void *)(&regular_func)));
+}
+
 // Tests that verify that Symbolize stack footprint is within some limit.
 #ifdef ABSL_INTERNAL_HAVE_DEBUGGING_STACK_CONSUMPTION
 
@@ -162,14 +191,13 @@ static const char *SymbolizeStackConsumption(void *pc, int *stack_consumed) {
 
 static int GetStackConsumptionUpperLimit() {
   // Symbolize stack consumption should be within 2kB.
-  const int kStackConsumptionUpperLimit = 2048;
-  // Account for ASan/TSan instrumentation requiring additional stack space.
-  size_t multiplier = 0;
-  if (absl::base_internal::MallocExtension::instance()->GetNumericProperty(
-          "dynamic_tool.stack_size_multiplier", &multiplier)) {
-    return kStackConsumptionUpperLimit * multiplier;
-  }
-  return kStackConsumptionUpperLimit;
+  int stack_consumption_upper_limit = 2048;
+#if defined(ADDRESS_SANITIZER) || defined(MEMORY_SANITIZER) || \
+    defined(THREAD_SANITIZER)
+  // Account for sanitizer instrumentation requiring additional stack space.
+  stack_consumption_upper_limit *= 5;
+#endif
+  return stack_consumption_upper_limit;
 }
 
 TEST(Symbolize, SymbolizeStackConsumption) {

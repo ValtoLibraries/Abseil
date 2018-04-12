@@ -43,7 +43,6 @@ namespace absl {
 class once_flag;
 
 namespace base_internal {
-// Implementation detail.
 std::atomic<uint32_t>* ControlWord(absl::once_flag* flag);
 }  // namespace base_internal
 
@@ -153,10 +152,10 @@ void CallOnceImpl(std::atomic<uint32_t>* control,
         old_control != kOnceDone) {
       ABSL_RAW_LOG(
           FATAL,
-          "Unexpected value for control word: %d. Either the control word "
+          "Unexpected value for control word: %lx. Either the control word "
           "has non-static storage duration (where GoogleOnceDynamic might "
           "be appropriate), or there's been a memory corruption.",
-          old_control);
+          static_cast<unsigned long>(old_control)); // NOLINT
     }
   }
 #endif  // NDEBUG
