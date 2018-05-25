@@ -102,6 +102,7 @@ cc_library(
 cc_library(
     name = "base_internal",
     hdrs = [
+        "internal/hide_ptr.h",
         "internal/identity.h",
         "internal/inline_variable.h",
         "internal/invoke.h",
@@ -370,6 +371,11 @@ cc_test(
     size = "small",
     srcs = ["internal/sysinfo_test.cc"],
     copts = ABSL_TEST_COPTS,
+    tags = [
+        "no_test_android_arm",
+        "no_test_android_arm64",
+        "no_test_android_x86",
+    ],
     deps = [
         ":base",
         "//absl/synchronization",
@@ -386,6 +392,11 @@ cc_test(
         "//absl:windows": [],
         "//conditions:default": ["-pthread"],
     }),
+    tags = [
+        "no_test_android_arm",
+        "no_test_android_arm64",
+        "no_test_android_x86",
+    ],
     deps = [":malloc_internal"],
 )
 
@@ -406,11 +417,11 @@ cc_test(
     ],
 )
 
-cc_binary(
+cc_test(
     name = "thread_identity_benchmark",
-    testonly = 1,
     srcs = ["internal/thread_identity_benchmark.cc"],
     copts = ABSL_TEST_COPTS,
+    tags = ["benchmark"],
     visibility = ["//visibility:private"],
     deps = [
         ":base",
