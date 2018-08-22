@@ -199,7 +199,7 @@
 #define ABSL_HAVE_INTRINSIC_INT128 1
 #elif defined(__CUDACC__)
 // __CUDACC_VER__ is a full version number before CUDA 9, and is defined to a
-// std::string explaining that it has been removed starting with CUDA 9. We use
+// string explaining that it has been removed starting with CUDA 9. We use
 // nested #ifs because there is no short-circuiting in the preprocessor.
 // NOTE: `__CUDACC__` could be undefined while `__CUDACC_VER__` is defined.
 #if __CUDACC_VER__ >= 70000
@@ -268,7 +268,7 @@
 #error ABSL_HAVE_MMAP cannot be directly set
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) ||   \
     defined(__ros__) || defined(__native_client__) || defined(__asmjs__) || \
-    defined(__wasm__) || defined(__Fuchsia__)
+    defined(__wasm__) || defined(__Fuchsia__) || defined(__sun)
 #define ABSL_HAVE_MMAP 1
 #endif
 

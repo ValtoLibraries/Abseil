@@ -87,7 +87,7 @@ constexpr auto GetDataImpl(C& c, char) noexcept  // NOLINT(runtime/references)
   return c.data();
 }
 
-// Before C++17, std::string::data returns a const char* in all cases.
+// Before C++17, string::data returns a const char* in all cases.
 inline char* GetDataImpl(std::string& s,  // NOLINT(runtime/references)
                          int) noexcept {
   return &s[0];
@@ -279,7 +279,7 @@ class Span {
   using size_type = size_t;
   using difference_type = ptrdiff_t;
 
-  static const size_type npos = ~size_type{0};
+  static const size_type npos = ~(size_type(0));
 
   constexpr Span() noexcept : Span(nullptr, 0) {}
   constexpr Span(pointer array, size_type length) noexcept

@@ -48,7 +48,7 @@ using std::optional;
 using std::make_optional;
 using std::nullopt_t;
 using std::nullopt;
-}
+}  // namespace absl
 
 #else  // ABSL_HAVE_STD_OPTIONAL
 
@@ -411,10 +411,10 @@ constexpr copy_traits get_ctor_copy_traits() {
 
 template <typename T>
 constexpr copy_traits get_assign_copy_traits() {
-  return std::is_copy_assignable<T>::value &&
+  return absl::is_copy_assignable<T>::value &&
                  std::is_copy_constructible<T>::value
              ? copy_traits::copyable
-             : std::is_move_assignable<T>::value &&
+             : absl::is_move_assignable<T>::value &&
                        std::is_move_constructible<T>::value
                    ? copy_traits::movable
                    : copy_traits::non_movable;
